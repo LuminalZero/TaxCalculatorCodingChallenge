@@ -11,27 +11,29 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TaxCalculator.API.Configuration;
 
 namespace TaxCalculator.API
 {
     public class Startup
     {
+        public IConfiguration Configuration { get; }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaxCalculator.API", Version = "v1" });
             });
+
+            ConfigureIoc(services);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -45,15 +47,16 @@ namespace TaxCalculator.API
             }
 
             app.UseHttpsRedirection();
-
             app.UseRouting();
-
             app.UseAuthorization();
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
+        }
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+        public void ConfigureIoc(IServiceCollection services)
+        {
+            var integrations = Configuration.GetSection("Integrations").Get<IntegrationsSection>();
+
+            // TODO: Hook in services to interfaces
         }
     }
 }
