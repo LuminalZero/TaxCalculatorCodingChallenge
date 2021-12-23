@@ -44,9 +44,34 @@
         public double CountyRate { get; set; }
 
         /// <summary>
+        /// Distance selling threshold for given location.
+        /// </summary>
+        public double DistanceSaleThreshold { get; set; }
+
+        /// <summary>
         /// Freight taxability for given location.
         /// </summary>
         public bool FreightTaxable { get; set; }
+
+        /// <summary>
+        /// Country name for given location.
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Parking rate for given location.
+        /// </summary>
+        public double ParkingRate { get; set; }
+
+        /// <summary>
+        /// Reduced rate for given location.
+        /// </summary>
+        public double ReducedRate { get; set; }
+
+        /// <summary>
+        /// Standard rate for given location.
+        /// </summary>
+        public double StandardRate { get; set; }
 
         /// <summary>
         /// Postal abbreviated state name for given location.
@@ -57,6 +82,11 @@
         /// State sales tax rate for given location.
         /// </summary>
         public double StateRate { get; set; }
+
+        /// <summary>
+        /// Super reduced rate for given location.
+        /// </summary>
+        public double SuperReducedRate { get; set; }
 
         /// <summary>
         /// Postal code for given location.

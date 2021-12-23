@@ -3,8 +3,8 @@ using TaxCalculator.API.Models;
 
 namespace TaxCalculator.API.Interfaces
 {
-    public interface ITaxService
+    public interface ITaxCalculator
     {
-        public Task<TaxRate> CalculateTaxRate(string zip, string country);
+        Task<TaxRate> GetRateForLocationAsync(string zip, string country);
     }
 }

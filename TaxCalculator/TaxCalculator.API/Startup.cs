@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TaxCalculator.API.Calculators;
 using TaxCalculator.API.Configuration;
 using TaxCalculator.API.Interfaces;
 using TaxCalculator.API.Services;
@@ -58,12 +59,14 @@ namespace TaxCalculator.API
         {
             var integrations = Configuration.GetSection("Integrations").Get<IntegrationsSection>();
 
-            services.AddHttpClient<ITaxService, TaxJarTaxService>("TaxJarTaxService",
+            services.AddHttpClient<ITaxCalculator, TaxJarTaxCalculator>("TaxJarTaxCalculator",
                 client =>
                 {
                     client.BaseAddress = new Uri(integrations.TaxJar.Url);
                     client.DefaultRequestHeaders.Add("Authorization", $@"Bearer { integrations.TaxJar.Key}");
                 });
+
+            services.AddTransient<ITaxService, TaxService>();
         }
     }
 }
