@@ -5,6 +5,6 @@ namespace TaxCalculator.API.Interfaces
 {
     public interface ITaxService
     {
-        public Task<TaxRate> CalculateTaxRate(string zip, string country);
+        public Task<TaxRate> GetTaxRate(string zip, string country);
     }
 }

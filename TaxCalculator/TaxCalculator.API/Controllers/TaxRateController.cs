@@ -27,7 +27,7 @@ namespace TaxCalculator.API.Controllers
             if (Regex.Match(country, @"^[a-zA-Z]{2}$").Success == false)
                 throw new ArgumentException("Country must be a two-letter ISO country code.");
 
-            return await _taxService.CalculateTaxRate(zip, country);
+            return await _taxService.GetTaxRate(zip, country);
         }
     }
 }

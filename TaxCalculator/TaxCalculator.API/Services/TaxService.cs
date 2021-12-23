@@ -13,7 +13,7 @@ namespace TaxCalculator.API.Services
             _taxCalculator = taxCalculator;
         }
 
-        public Task<TaxRate> CalculateTaxRate(string zip, string country)
+        public Task<TaxRate> GetTaxRate(string zip, string country)
         {
             return _taxCalculator.GetRateForLocationAsync(zip, country);
         }
