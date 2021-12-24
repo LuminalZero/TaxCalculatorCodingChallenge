@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TaxCalculator.API.Constants;
 using TaxCalculator.API.DTOs;
+using TaxCalculator.API.Helpers;
 using TaxCalculator.API.Interfaces;
 using TaxCalculator.API.Models;
 
@@ -13,32 +13,25 @@ namespace TaxCalculator.API.Calculators
     public class TaxJarTaxCalculator : ITaxCalculator
     {
         private readonly HttpClient _client;
-        private const string RATE_ENDPOINT = "rates";
-        private const string TAXES_ENDPOINT = "taxes";
 
         public TaxJarTaxCalculator(HttpClient client)
         {
             _client = client;
         }
 
-        public async Task<TaxRate> GetRateForLocationAsync(string zip, string country)
+        public async Task<TaxRate> GetRateForLocationAsync(string zip, string countryCode)
         {
-            if (Regex.Match(zip, @"^\d{5}(?:-\d{4})?$").Success == false)
-                throw new ArgumentException($@"Parameter {nameof(zip)} must be in the form 12345 or 12345-6789.", nameof(zip));
+            Validators.ValidateRequired(zip);
+            Validators.ValidateRequired(countryCode);
 
-            if (Regex.Match(country, @"^[a-zA-Z]{2}$").Success == false)
-                throw new ArgumentException($@"Parameter {nameof(country)} must be a two-letter ISO country code.");
+            Validators.ValidateCountryCode(countryCode);
+            Validators.ValidateZip(countryCode, zip);
 
             try
             {
-                var response = await _client.GetFromJsonAsync<TaxJarRate>($@"{RATE_ENDPOINT}/{zip}?country={country}");
+                var response = await _client.GetFromJsonAsync<TaxJarRate>(GetRatesUrl(zip, countryCode));
 
                 return MapTaxRate(response);
-            }
-            // purposefully not using caught exception, just pass back an empty object.
-            catch (HttpRequestException)
-            {
-                return new TaxRate { Zip = zip.ToString() };
             }
             // unknown error happened, make a fuss about it...
             catch
@@ -46,6 +39,34 @@ namespace TaxCalculator.API.Calculators
                 throw;
             }
         }
+
+        public async Task<double> GetTaxForOrderAsync(OrderDetails order)
+        {
+            ValidateOrderDetails(order);
+
+            var data = new
+            {
+                amount = order.Subtotal,
+                shipping = order.Shipping,
+                from_country = order.OriginCountry,
+                from_zip = order.OriginZip,
+                from_state = order.OriginState,
+                from_city = order.OriginCity,
+                from_street = order.OriginStreet,
+                to_country = order.DestiationCountry,
+                to_state = order.DestiationState,
+                to_zip = order.DestiationZip,
+            };
+
+            var response = await _client.PostAsJsonAsync("taxes", data);
+            if (response.IsSuccessStatusCode == false) throw new Exception();
+
+            var content = await response.Content.ReadFromJsonAsync<TaxJarTax>();
+
+            return content.tax.amount_to_collect;
+        }
+
+        private static string GetRatesUrl(string zip, string country) => $@"rates/{zip}?country={country}";
 
         private static TaxRate MapTaxRate(TaxJarRate from)
         {
@@ -72,81 +93,39 @@ namespace TaxCalculator.API.Calculators
             };
         }
 
-        public async Task<double> GetTaxForOrderAsync(OrderDetails order)
-        {
-            ValidateOrderDetails(order);
-
-            var data = new
-            {
-                amount = order.Subtotal,
-                shipping = order.Shipping,
-                from_country = order.OriginCountry,
-                from_zip = order.OriginZip,
-                from_state = order.OriginState,
-                from_city = order.OriginCity,
-                from_street = order.OriginStreet,
-                to_country = order.DestiationCountry,
-                to_state = order.DestiationState,
-                to_zip = order.DestiationZip,
-            };
-
-            var response = await _client.PostAsJsonAsync(TAXES_ENDPOINT, data);
-            if (response.IsSuccessStatusCode == false) throw new Exception();
-
-            var content = await response.Content.ReadFromJsonAsync<TaxJarTax>();
-
-            return content.tax.amount_to_collect;
-        }
-
         private static void ValidateOrderDetails(OrderDetails order)
         {
-            if (order.Subtotal == default)
-                throw new ArgumentException($@"{nameof(order.Subtotal)} is required.", nameof(order));
-
-            if (order.Shipping == default)
-                throw new ArgumentException($@"{nameof(order.Shipping)} is required.", nameof(order));
+            Validators.ValidateRequired(order.Subtotal);
+            Validators.ValidateRequired(order.Shipping);
 
             TestOrderDetailsDestination(order);
-
             TestOrderDetailsOrigin(order);
         }
 
         private static void TestOrderDetailsDestination(OrderDetails order)
         {
-            if (string.IsNullOrWhiteSpace(order.DestiationCountry))
-                throw new ArgumentException($@"{nameof(order.DestiationCountry)} is required.", nameof(order));
-
-            if (Regex.Match(order.DestiationCountry, @"^[a-zA-Z]{2}$").Success == false)
-                throw new ArgumentException($@"{nameof(order.DestiationCountry)} must be a two-letter ISO country code.");
+            Validators.ValidateRequired(order.DestiationCountry);
+            Validators.ValidateCountryCode(order.DestiationCountry);
 
             if (order.DestiationCountry == CountryConstants.UnitedStates)
             {
-                if (string.IsNullOrWhiteSpace(order.DestiationZip))
-                    throw new ArgumentException($@"{nameof(order.DestiationZip)} is required when {order.DestiationCountry} is '{CountryConstants.UnitedStates}'.", nameof(order));
-
-                if (Regex.Match(order.DestiationZip, @"^\d{5}(?:-\d{4})?$").Success == false)
-                    throw new ArgumentException($@"{order.DestiationZip} must be in the form 12345 or 12345-6789.", nameof(order));
+                Validators.ValidateRequired(order.DestiationZip);
+                Validators.ValidateZip(order.DestiationCountry, order.DestiationZip);
             }
 
             if (order.DestiationCountry == CountryConstants.UnitedStates || order.DestiationCountry == CountryConstants.Canada)
             {
-                if (string.IsNullOrWhiteSpace(order.DestiationState))
-                    throw new ArgumentException($@"{nameof(order.DestiationState)} is required when {order.DestiationCountry} is '{CountryConstants.UnitedStates}' or '{CountryConstants.Canada}'.", nameof(order));
+                Validators.ValidateRequired(order.DestiationState);
             }
         }
 
         private static void TestOrderDetailsOrigin(OrderDetails order)
         {
-            if (string.IsNullOrWhiteSpace(order.OriginCountry))
-                throw new ArgumentException($@"{nameof(order.OriginCountry)} is required.", nameof(order));
-            if (Regex.Match(order.OriginCountry, @"^[a-zA-Z]{2}$").Success == false)
-                throw new ArgumentException($@"{nameof(order.OriginCountry)} must be a two-letter ISO country code.");
-            if (string.IsNullOrWhiteSpace(order.OriginState))
-                throw new ArgumentException($@"{nameof(order.OriginState)} is required.", nameof(order));
-            if (string.IsNullOrWhiteSpace(order.OriginZip))
-                throw new ArgumentException($@"{nameof(order.OriginZip)} is required.", nameof(order));
-            if (Regex.Match(order.OriginZip, @"^\d{5}(?:-\d{4})?$").Success == false)
-                throw new ArgumentException($@"{order.OriginZip} must be in the form 12345 or 12345-6789.", nameof(order));
+            Validators.ValidateRequired(order.OriginCountry);
+            Validators.ValidateCountryCode(order.OriginCountry);
+            Validators.ValidateRequired(order.OriginState);
+            Validators.ValidateRequired(order.OriginZip);
+            Validators.ValidateZip(order.OriginCountry, order.OriginZip);
         }
 
         private class TaxJarRate
