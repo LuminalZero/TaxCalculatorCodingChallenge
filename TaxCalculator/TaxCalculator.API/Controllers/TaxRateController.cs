@@ -22,10 +22,10 @@ namespace TaxCalculator.API.Controllers
         public async Task<TaxRate> Get(string zip, string country = "US")
         {
             if (Regex.Match(zip, @"^\d{5}(?:-\d{4})?$").Success == false)
-                throw new ArgumentException("Zip must be in the form 12345 or 12345-6789.", nameof(zip));
+                throw new ArgumentException($@"Parameter {nameof(zip)} must be in the form 12345 or 12345-6789.", nameof(zip));
 
             if (Regex.Match(country, @"^[a-zA-Z]{2}$").Success == false)
-                throw new ArgumentException("Country must be a two-letter ISO country code.");
+                throw new ArgumentException($@"Parameter {nameof(country)} must be a two-letter ISO country code.");
 
             return await _taxService.GetTaxRate(zip, country);
         }

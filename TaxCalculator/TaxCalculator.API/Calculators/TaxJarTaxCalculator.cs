@@ -1,6 +1,8 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using TaxCalculator.API.DTOs;
 using TaxCalculator.API.Interfaces;
 using TaxCalculator.API.Models;
 
@@ -9,7 +11,8 @@ namespace TaxCalculator.API.Calculators
     public class TaxJarTaxCalculator : ITaxCalculator
     {
         private readonly HttpClient _client;
-        private const string ENDPOINT = "rates";
+        private const string RATE_ENDPOINT = "rates";
+        private const string TAXES_ENDPOINT = "taxes";
 
         public TaxJarTaxCalculator(HttpClient client)
         {
@@ -20,7 +23,7 @@ namespace TaxCalculator.API.Calculators
         {
             try
             {
-                var response = await _client.GetFromJsonAsync<TaxJarRate>($@"{ENDPOINT}/{zip}?country={country}");
+                var response = await _client.GetFromJsonAsync<TaxJarRate>($@"{RATE_ENDPOINT}/{zip}?country={country}");
 
                 return MapTaxRate(response);
             }
@@ -61,6 +64,30 @@ namespace TaxCalculator.API.Calculators
             };
         }
 
+        public async Task<double> GetTaxForOrderAsync(OrderDetails order)
+        {
+            var data = new
+            {
+                amount = order.Subtotal,
+                shipping = order.Shipping,
+                from_country = order.OriginCountry,
+                from_zip = order.OriginZip,
+                from_state = order.OriginState,
+                from_city = order.OriginCity,
+                from_street = order.OriginStreet,
+                to_country = order.DestiationCountry,
+                to_state = order.DestiationState,
+                to_zip = order.DestiationZip,
+            };
+
+            var response = await _client.PostAsJsonAsync(TAXES_ENDPOINT, data);
+            if (response.IsSuccessStatusCode == false) throw new Exception();
+
+            var content = await response.Content.ReadFromJsonAsync<TaxJarTax>();
+
+            return content.tax.amount_to_collect;
+        }
+
         private class TaxJarRate
         {
             public Rate rate { get; set; }
@@ -86,6 +113,23 @@ namespace TaxCalculator.API.Calculators
             public double state_rate { get; set; }
             public double super_reduced_rate { get; set; }
             public string zip { get; set; }
+        }
+
+        private class TaxJarTax
+        {
+            public Tax tax { get; set; }
+        }
+
+        private class Tax
+        {
+            public double order_total_amount { get; set; }
+            public double shipping { get; set; }
+            public double taxable_amount { get; set; }
+            public double amount_to_collect { get; set; }
+            public double rate { get; set; }
+            public bool freight_taxable { get; set; }
+            public string tax_source { get; set; }
+            public string exemption_type { get; set; }
         }
     }
 }
