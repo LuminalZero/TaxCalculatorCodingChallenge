@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using TaxCalculator.API.Constants;
 using TaxCalculator.API.DTOs;
 using TaxCalculator.API.Interfaces;
 using TaxCalculator.API.Models;
@@ -21,6 +23,12 @@ namespace TaxCalculator.API.Calculators
 
         public async Task<TaxRate> GetRateForLocationAsync(string zip, string country)
         {
+            if (Regex.Match(zip, @"^\d{5}(?:-\d{4})?$").Success == false)
+                throw new ArgumentException($@"Parameter {nameof(zip)} must be in the form 12345 or 12345-6789.", nameof(zip));
+
+            if (Regex.Match(country, @"^[a-zA-Z]{2}$").Success == false)
+                throw new ArgumentException($@"Parameter {nameof(country)} must be a two-letter ISO country code.");
+
             try
             {
                 var response = await _client.GetFromJsonAsync<TaxJarRate>($@"{RATE_ENDPOINT}/{zip}?country={country}");
@@ -66,6 +74,8 @@ namespace TaxCalculator.API.Calculators
 
         public async Task<double> GetTaxForOrderAsync(OrderDetails order)
         {
+            ValidateOrderDetails(order);
+
             var data = new
             {
                 amount = order.Subtotal,
@@ -86,6 +96,57 @@ namespace TaxCalculator.API.Calculators
             var content = await response.Content.ReadFromJsonAsync<TaxJarTax>();
 
             return content.tax.amount_to_collect;
+        }
+
+        private static void ValidateOrderDetails(OrderDetails order)
+        {
+            if (order.Subtotal == default)
+                throw new ArgumentException($@"{nameof(order.Subtotal)} is required.", nameof(order));
+
+            if (order.Shipping == default)
+                throw new ArgumentException($@"{nameof(order.Shipping)} is required.", nameof(order));
+
+            TestOrderDetailsDestination(order);
+
+            TestOrderDetailsOrigin(order);
+        }
+
+        private static void TestOrderDetailsDestination(OrderDetails order)
+        {
+            if (string.IsNullOrWhiteSpace(order.DestiationCountry))
+                throw new ArgumentException($@"{nameof(order.DestiationCountry)} is required.", nameof(order));
+
+            if (Regex.Match(order.DestiationCountry, @"^[a-zA-Z]{2}$").Success == false)
+                throw new ArgumentException($@"{nameof(order.DestiationCountry)} must be a two-letter ISO country code.");
+
+            if (order.DestiationCountry == CountryConstants.UnitedStates)
+            {
+                if (string.IsNullOrWhiteSpace(order.DestiationZip))
+                    throw new ArgumentException($@"{nameof(order.DestiationZip)} is required when {order.DestiationCountry} is '{CountryConstants.UnitedStates}'.", nameof(order));
+
+                if (Regex.Match(order.DestiationZip, @"^\d{5}(?:-\d{4})?$").Success == false)
+                    throw new ArgumentException($@"{order.DestiationZip} must be in the form 12345 or 12345-6789.", nameof(order));
+            }
+
+            if (order.DestiationCountry == CountryConstants.UnitedStates || order.DestiationCountry == CountryConstants.Canada)
+            {
+                if (string.IsNullOrWhiteSpace(order.DestiationState))
+                    throw new ArgumentException($@"{nameof(order.DestiationState)} is required when {order.DestiationCountry} is '{CountryConstants.UnitedStates}' or '{CountryConstants.Canada}'.", nameof(order));
+            }
+        }
+
+        private static void TestOrderDetailsOrigin(OrderDetails order)
+        {
+            if (string.IsNullOrWhiteSpace(order.OriginCountry))
+                throw new ArgumentException($@"{nameof(order.OriginCountry)} is required.", nameof(order));
+            if (Regex.Match(order.OriginCountry, @"^[a-zA-Z]{2}$").Success == false)
+                throw new ArgumentException($@"{nameof(order.OriginCountry)} must be a two-letter ISO country code.");
+            if (string.IsNullOrWhiteSpace(order.OriginState))
+                throw new ArgumentException($@"{nameof(order.OriginState)} is required.", nameof(order));
+            if (string.IsNullOrWhiteSpace(order.OriginZip))
+                throw new ArgumentException($@"{nameof(order.OriginZip)} is required.", nameof(order));
+            if (Regex.Match(order.OriginZip, @"^\d{5}(?:-\d{4})?$").Success == false)
+                throw new ArgumentException($@"{order.OriginZip} must be in the form 12345 or 12345-6789.", nameof(order));
         }
 
         private class TaxJarRate
