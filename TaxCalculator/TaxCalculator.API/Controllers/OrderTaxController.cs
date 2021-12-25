@@ -19,7 +19,7 @@ namespace TaxCalculator.API.Controllers
         [HttpPost]
         public async Task<double> Post(OrderDetails order)
         {
-            return await _taxService.CalculateTaxesForOrder(order);
+            return await _taxService.CalculateTaxesForOrderAsync(order);
         }
     }
 }

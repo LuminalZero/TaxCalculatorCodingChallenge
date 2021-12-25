@@ -1,13 +1,9 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TaxCalculator.API.Calculators;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net.Http;
-using TaxCalculator.API.DTOs;
+using System.Threading.Tasks;
 using TaxCalculator.API.Constants;
+using TaxCalculator.API.DTOs;
 
 namespace TaxCalculator.API.Calculators.Tests
 {
