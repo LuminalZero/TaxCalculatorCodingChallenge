@@ -14,14 +14,14 @@ namespace TaxCalculator.API.Services
             _taxCalculator = taxCalculator;
         }
 
-        public async Task<double> CalculateTaxesForOrder(OrderDetails order)
+        public async Task<double> CalculateTaxesForOrderAsync(OrderDetails order)
         {
             return await _taxCalculator.GetTaxForOrderAsync(order);
         }
 
-        public Task<TaxRate> GetTaxRate(string zip, string country)
+        public async Task<TaxRate> GetTaxRateAsync(string zip, string country)
         {
-            return _taxCalculator.GetRateForLocationAsync(zip, country);
+            return await _taxCalculator.GetRateForLocationAsync(zip, country);
         }
     }
 }

@@ -19,7 +19,7 @@ namespace TaxCalculator.API.Controllers
         [HttpGet]
         public async Task<TaxRate> Get(string zip, string country = "US")
         {
-            return await _taxService.GetTaxRate(zip, country);
+            return await _taxService.GetTaxRateAsync(zip, country);
         }
     }
 }

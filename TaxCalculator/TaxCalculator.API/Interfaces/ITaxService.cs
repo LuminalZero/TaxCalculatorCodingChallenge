@@ -6,7 +6,7 @@ namespace TaxCalculator.API.Interfaces
 {
     public interface ITaxService
     {
-        public Task<TaxRate> GetTaxRate(string zip, string country);
-        public Task<double> CalculateTaxesForOrder(OrderDetails order);
+        public Task<TaxRate> GetTaxRateAsync(string zip, string country);
+        public Task<double> CalculateTaxesForOrderAsync(OrderDetails order);
     }
 }
