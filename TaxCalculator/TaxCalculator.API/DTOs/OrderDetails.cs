@@ -9,8 +9,8 @@
         public string OriginState { get; set; }
         public string OriginCity { get; set; }
         public string OriginStreet { get; set; }
-        public string DestiationCountry { get; set; }
-        public string DestiationState { get; set; }
-        public string DestiationZip { get; set; }
+        public string DestinationCountry { get; set; }
+        public string DestinationState { get; set; }
+        public string DestinationZip { get; set; }
     }
 }

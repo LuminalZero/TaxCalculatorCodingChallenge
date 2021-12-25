@@ -53,9 +53,9 @@ namespace TaxCalculator.API.Calculators
                 from_state = order.OriginState,
                 from_city = order.OriginCity,
                 from_street = order.OriginStreet,
-                to_country = order.DestiationCountry,
-                to_state = order.DestiationState,
-                to_zip = order.DestiationZip,
+                to_country = order.DestinationCountry,
+                to_state = order.DestinationState,
+                to_zip = order.DestinationZip,
             };
 
             var response = await _client.PostAsJsonAsync("taxes", data);
@@ -96,7 +96,6 @@ namespace TaxCalculator.API.Calculators
         private static void ValidateOrderDetails(OrderDetails order)
         {
             Validators.ValidateRequired(order.Subtotal);
-            Validators.ValidateRequired(order.Shipping);
 
             TestOrderDetailsDestination(order);
             TestOrderDetailsOrigin(order);
@@ -104,18 +103,18 @@ namespace TaxCalculator.API.Calculators
 
         private static void TestOrderDetailsDestination(OrderDetails order)
         {
-            Validators.ValidateRequired(order.DestiationCountry);
-            Validators.ValidateCountryCode(order.DestiationCountry);
+            Validators.ValidateRequired(order.DestinationCountry);
+            Validators.ValidateCountryCode(order.DestinationCountry);
 
-            if (order.DestiationCountry == CountryConstants.UnitedStates)
+            if (order.DestinationCountry == CountryConstants.UnitedStates)
             {
-                Validators.ValidateRequired(order.DestiationZip);
-                Validators.ValidateZip(order.DestiationCountry, order.DestiationZip);
+                Validators.ValidateRequired(order.DestinationZip);
+                Validators.ValidateZip(order.DestinationCountry, order.DestinationZip);
             }
 
-            if (order.DestiationCountry == CountryConstants.UnitedStates || order.DestiationCountry == CountryConstants.Canada)
+            if (order.DestinationCountry == CountryConstants.UnitedStates || order.DestinationCountry == CountryConstants.Canada)
             {
-                Validators.ValidateRequired(order.DestiationState);
+                Validators.ValidateRequired(order.DestinationState);
             }
         }
 
